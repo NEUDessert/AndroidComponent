@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="match_parent">
 
-    <dessert.chenxi.li.dessert_ui.WeatherFragment.ArcProgressBar
+    <dessert.chenxi.li.dessert_ui.SimpleLineChart.SimpleLineChart
         android:layout_width="match_parent"
-        android:layout_height="420dp"
-        android:id="@+id/bar_weather_tmp" />
+        android:layout_height="match_parent" />
 
 </LinearLayout>

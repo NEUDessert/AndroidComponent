@@ -3,7 +3,10 @@ package dessert.chenxi.li.dessert_ui.LoginActivity;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.DatabaseUtils;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.app.Activity;
 import android.app.LoaderManager.LoaderCallbacks;
@@ -18,20 +21,29 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.text.TextUtils;
-import android.view.KeyEvent;
+import android.util.Log;
 import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.thinkcool.circletextimageview.CircleTextImageView;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import dessert.chenxi.li.dessert_ui.DataBase.DataBase;
+import dessert.chenxi.li.dessert_ui.DataBase.DataBaseUtil;
+import dessert.chenxi.li.dessert_ui.MainActivity;
+import dessert.chenxi.li.dessert_ui.OkHttpUtil;
 import dessert.chenxi.li.dessert_ui.R;
 
 import static android.Manifest.permission.READ_CONTACTS;
@@ -51,7 +63,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
      * TODO: remove after connecting to a real authentication system.
      */
     private static final String[] DUMMY_CREDENTIALS = new String[]{
-            "foo@example.com:hello", "bar@example.com:world"
+            "0000:0000", "0001:1235"
     };
     /**
      * Keep track of the login task to ensure we can cancel it if requested.
@@ -59,41 +71,169 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
     private UserLoginTask mAuthTask = null;
 
     // UI references.
-    private AutoCompleteTextView mEmailView;
+    private AutoCompleteTextView mAccountView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private Button btnLogin;
+    private TextView tvLoginFail, tvRegister;
+    private CircleTextImageView portraitPic;
+    private String lastUrl = "http://115.159.205.225:8080/li/";
+    private String newUrl = "http://219.216.65.185:8082/user/login.do";
+    private String historyInfo ;
+    private String pieces[];
+    private DataBase dataBase;
 
+//    private String fileName = Environment.getExternalStorageDirectory().getPath()
+//                            +File.separator+".DataStorage"+File.separator +"HistoryInfo.txt";
+    private String fileName = Environment.getExternalStorageDirectory().getPath()
+                                +File.separator +"HistoryInfo.txt";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         // Set up the login form.
-        mEmailView = (AutoCompleteTextView) findViewById(R.id.email);
+        mAccountView = (AutoCompleteTextView) findViewById(R.id.account);
         populateAutoComplete();
-
         mPasswordView = (EditText) findViewById(R.id.password);
-        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
-            @Override
-            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
-                if (id == R.id.login || id == EditorInfo.IME_NULL) {
-                    attemptLogin();
-                    return true;
-                }
-                return false;
-            }
-        });
+        dataBase = new DataBase(LoginActivity.this);
 
-        Button mEmailSignInButton = (Button) findViewById(R.id.email_sign_in_button);
-        mEmailSignInButton.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                attemptLogin();
-            }
-        });
+//        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+//            @Override
+//            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
+//                if (id == R.id.login || id == EditorInfo.IME_NULL) {
+//                    attemptLogin();
+//                    return true;
+//                }
+//                return false;
+//            }
+//        });
+
+        btnLogin = (Button) findViewById(R.id.btn_loginIn);
+        portraitPic = (CircleTextImageView) findViewById(R.id.profile_image);
+        tvLoginFail = (TextView) findViewById(R.id.tv_loginFail);
+        tvRegister = (TextView) findViewById(R.id.tv_register);
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+
+        if(!DataBaseUtil.isEmpty(LoginActivity.this)){
+//            Log.i("path", fileName);
+            historyInfo = DataBaseUtil.readFirstInSql(LoginActivity.this);
+            for (int i=0; i<2; i++) {
+                pieces = historyInfo.split(":");
+            }
+            signIn(pieces[0], pieces[1]);
+
+            Toast.makeText(getApplicationContext(), "历史账号登陆成功！", Toast.LENGTH_SHORT).show();
+            Intent intent=new Intent();
+            //键值对
+            intent.putExtra("account", pieces[0]);
+            //从此activity传到另一Activity
+            intent.setClass(LoginActivity.this, MainActivity.class);
+            //启动另一个Activity
+            LoginActivity.this.startActivity(intent);
+            LoginActivity.this.finish();
+        }
+
+    }
+
+    public void viewOnClick(View v){
+        switch (v.getId()){
+            case R.id.tv_loginFail:
+                Toast.makeText(getApplicationContext(), "那就别用了！", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.tv_register:
+                Toast.makeText(getApplicationContext(), "现在不让注册！", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.btn_loginIn:
+                attemptLogin();
+//                if(!(mAccountView.getText().equals("")) && !(mPasswordView.getText().equals(""))){
+//                    account = mAccountView.getText().toString();
+//                    password = mPasswordView.getText().toString();
+//                    if(signIn(uri, account, password)) {
+//                        Toast.makeText(getApplicationContext(), "登陆成功！", Toast.LENGTH_SHORT).show();
+////                          Intent intent = new Intent();
+////                          intent.setClass(LoginActivity.this, MainActivity.class);
+////                          Bundle bundle = new Bundle();
+////                          bundle.putString("account", account);
+////                          intent.putExtra("bundle", bundle);
+////                          setResult(1, intent);
+////                          LoginActivity.this.finish();
+//                        saveInfo(account, password);
+//
+//                        Intent intent=new Intent();
+//                        //键值对
+//                        intent.putExtra("account", account);
+//                        //从此activity传到另一Activity
+//                        intent.setClass(LoginActivity.this, MainActivity.class);
+//                        //启动另一个Activity
+//                        LoginActivity.this.startActivity(intent);
+//                        LoginActivity.this.finish();
+//                    }else {
+//                        Toast.makeText(getApplicationContext(), "登陆失败!", Toast.LENGTH_SHORT).show();
+//                        break;
+//                    }
+//                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    private boolean signIn(String account, String password){
+        if (OkHttpUtil.postParams(lastUrl, account, password)){
+            return true;
+        }else {
+            return false;
+        }
+    }
+
+
+//    保存到文档
+    private void saveInfo(String name, String password) {
+        String content = name +":"+ password;
+        try{
+            FileOutputStream outputStream = new FileOutputStream(fileName);
+            outputStream.write(content.getBytes());
+            outputStream.flush();
+            outputStream.close();
+            Toast.makeText(LoginActivity.this, "保存成功", Toast.LENGTH_LONG).show();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        } catch (IOException e){
+            e.printStackTrace();
+        }
+
+//        FileOutputStream fout = new FileOutputStream(fileName);
+//        byte[] bytes = writeStr.getBytes();
+//
+//        fout.write(bytes);
+//        fout.close();
+//
+
+    }
+
+//    读取文档
+    private String readInfo(){
+        try {
+            FileInputStream inputStream = new FileInputStream(fileName);
+            byte[] bytes = new byte[64];
+            ByteArrayOutputStream arrayOutputStream = new ByteArrayOutputStream();
+            while (inputStream.read(bytes) != -1) {
+                arrayOutputStream.write(bytes, 0, bytes.length);
+            }
+            inputStream.close();
+            arrayOutputStream.close();
+            String content = new String(arrayOutputStream.toByteArray());
+            return content;
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return "";
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "";
+        }
     }
 
     private void populateAutoComplete() {
@@ -144,11 +284,11 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         }
 
         // Reset errors.
-        mEmailView.setError(null);
+        mAccountView.setError(null);
         mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String email = mEmailView.getText().toString();
+        String account = mAccountView.getText().toString();
         String password = mPasswordView.getText().toString();
 
         boolean cancel = false;
@@ -162,13 +302,9 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
         }
 
         // Check for a valid email address.
-        if (TextUtils.isEmpty(email)) {
-            mEmailView.setError(getString(R.string.error_field_required));
-            focusView = mEmailView;
-            cancel = true;
-        } else if (!isEmailValid(email)) {
-            mEmailView.setError(getString(R.string.error_invalid_email));
-            focusView = mEmailView;
+        if (TextUtils.isEmpty(account)) {
+            mAccountView.setError(getString(R.string.error_field_required));
+            focusView = mAccountView;
             cancel = true;
         }
 
@@ -180,19 +316,15 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             // Show a progress spinner, and kick off a background task to
             // perform the user login attempt.
             showProgress(true);
-            mAuthTask = new UserLoginTask(email, password);
+            mAuthTask = new UserLoginTask(account, password);
             mAuthTask.execute((Void) null);
         }
     }
 
-    private boolean isEmailValid(String email) {
-        //TODO: Replace this with your own logic
-        return email.contains("@");
-    }
 
     private boolean isPasswordValid(String password) {
         //TODO: Replace this with your own logic
-        return password.length() > 4;
+        return password.length() > 3;
     }
 
     /**
@@ -256,24 +388,12 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             emails.add(cursor.getString(ProfileQuery.ADDRESS));
             cursor.moveToNext();
         }
-
-        addEmailsToAutoComplete(emails);
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
 
     }
-
-    private void addEmailsToAutoComplete(List<String> emailAddressCollection) {
-        //Create adapter to tell the AutoCompleteTextView what to show in its dropdown list.
-        ArrayAdapter<String> adapter =
-                new ArrayAdapter<>(LoginActivity.this,
-                        android.R.layout.simple_dropdown_item_1line, emailAddressCollection);
-
-        mEmailView.setAdapter(adapter);
-    }
-
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -291,18 +411,17 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
      */
     public class UserLoginTask extends AsyncTask<Void, Void, Boolean> {
 
-        private final String mEmail;
+        private final String mAccount;
         private final String mPassword;
 
-        UserLoginTask(String email, String password) {
-            mEmail = email;
+        UserLoginTask(String account, String password) {
+            mAccount = account;
             mPassword = password;
         }
 
         @Override
         protected Boolean doInBackground(Void... params) {
             // TODO: attempt authentication against a network service.
-
             try {
                 // Simulate network access.
                 Thread.sleep(2000);
@@ -310,16 +429,7 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
                 return false;
             }
 
-            for (String credential : DUMMY_CREDENTIALS) {
-                String[] pieces = credential.split(":");
-                if (pieces[0].equals(mEmail)) {
-                    // Account exists, return true if the password matches.
-                    return pieces[1].equals(mPassword);
-                }
-            }
-
-            // TODO: register the new account here.
-            return true;
+            return signIn(mAccount, mPassword);
         }
 
         @Override
@@ -328,8 +438,18 @@ public class LoginActivity extends Activity implements LoaderCallbacks<Cursor> {
             showProgress(false);
 
             if (success) {
-                finish();
+                Toast.makeText(getApplicationContext(), "登陆成功！", Toast.LENGTH_SHORT).show();
+                DataBaseUtil.insertInSql(LoginActivity.this, mAccount, mPassword);
+                Intent intent=new Intent();
+                //键值对
+                intent.putExtra("account", mAccount);
+                //从此activity传到另一Activity
+                intent.setClass(LoginActivity.this, MainActivity.class);
+                //启动另一个Activity
+                LoginActivity.this.startActivity(intent);
+                LoginActivity.this.finish();
             } else {
+                Toast.makeText(getApplicationContext(), "登陆失败！", Toast.LENGTH_SHORT).show();
                 mPasswordView.setError(getString(R.string.error_incorrect_password));
                 mPasswordView.requestFocus();
             }

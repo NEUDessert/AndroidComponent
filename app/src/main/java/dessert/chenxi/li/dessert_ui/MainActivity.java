@@ -7,6 +7,7 @@ import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.graphics.Color;
 import android.hardware.usb.UsbManager;
 import android.media.MediaPlayer;
@@ -17,6 +18,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,7 +35,10 @@ import android.widget.Toast;
 import java.io.IOException;
 
 import cn.wch.ch34xuartdriver.CH34xUARTDriver;
+import dessert.chenxi.li.dessert_ui.DataBase.DataBase;
+import dessert.chenxi.li.dessert_ui.DataBase.DataBaseUtil;
 import dessert.chenxi.li.dessert_ui.HomeFragment.HomeFragment;
+import dessert.chenxi.li.dessert_ui.LoginActivity.LoginActivity;
 import dessert.chenxi.li.dessert_ui.VideoFragment.VideoFragment;
 import dessert.chenxi.li.dessert_ui.WeatherFragment.WeatherFragment;
 
@@ -65,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
     //  用于对四个界面的fragment的管理
     private FragmentManager fragmentManager;
 
+    private String account;
 
     //设备所需变量
     private EditText readText;
@@ -77,6 +83,13 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Intent intent=getIntent();
+        account =intent.getStringExtra("account");
+
+        //从上个Activity传过来的值
+        Toast.makeText(this, account+"登陆", Toast.LENGTH_SHORT).show();
+
         setContentView(R.layout.activity_main);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);//保存屏幕常亮
 
@@ -89,6 +102,18 @@ public class MainActivity extends AppCompatActivity {
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.main_toolbar);
         setSupportActionBar(toolbar);
+
+//            Intent intent = new Intent(this, LoginActivity.class);
+//            startActivity(intent);
+
+//            Bundle bundle = new Bundle();
+//            bundle.putBoolean("isLogin", false);
+//            Intent intent = new Intent();
+//            intent.setClass(MainActivity.this, LoginActivity.class);
+//            intent.putExtra("bundle", bundle);
+//            startActivityForResult(intent, 1);
+//
+//        initViews();
 
 
 //        MyApp.driver = new CH34xUARTDriver(
@@ -116,8 +141,6 @@ public class MainActivity extends AppCompatActivity {
 //                readText.append((String)msg.obj);
 //            }
 //        };
-
-
     }
 
     //  定义控件、文本和设置点击的事件侦听器
@@ -140,13 +163,22 @@ public class MainActivity extends AppCompatActivity {
 
         tvLocation = (TextView) findViewById(R.id.tv_deviceName);
         locationSpinner = (Spinner)findViewById(R.id.locationValues);
+//        if (isLogin) {
         ArrayAdapter<CharSequence> baudAdapter = ArrayAdapter
                 .createFromResource(this, R.array.location_values,
                         R.layout.my_spinner_textview);
         baudAdapter.setDropDownViewResource(R.layout.my_spinner_textview);
         locationSpinner.setAdapter(baudAdapter);
+//        }else {
+//            ArrayAdapter<CharSequence> baudAdapter = ArrayAdapter
+//                    .createFromResource(this, R.array.notLogin,
+//                            R.layout.my_spinner_textview);
+//            baudAdapter.setDropDownViewResource(R.layout.my_spinner_textview);
+//            locationSpinner.setAdapter(baudAdapter);
+//            locationSpinner.setEnabled(false);
+//        }
         locationSpinner.setGravity(0x10);
-        locationSpinner.setSelection(5);
+        locationSpinner.setSelection(0);
 
 //        readText = (EditText) findViewById(R.id.et_dataString);
 //        btnOpen = (Button) findViewById(R.id.btn_open);
@@ -263,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
         //  设置选中时的图片颜色及字体颜色，若对应的fragment为空则创建，将此时的界面内容交给对应的fragment。若不为空，则将它显示出来。
             case REQUEST_CODE_WEATHER:
                 ivWeather.setImageResource(R.drawable.weather_l);
-                tvWeather.setTextColor(Color.parseColor("#00bfff"));
+                tvWeather.setTextColor(this.getResources().getColor(R.color.colorPrimary));
                 if (fraTabWeather == null){
                     fraTabWeather = new WeatherFragment();
                     transaction.add(R.id.id_content, fraTabWeather);
@@ -274,7 +306,7 @@ public class MainActivity extends AppCompatActivity {
 
             case REQUEST_CODE_VIDEO:
                 ivVideo.setImageResource(R.drawable.video_l);
-                tvVideo.setTextColor(Color.parseColor("#00bfff"));
+                tvVideo.setTextColor(this.getResources().getColor(R.color.colorPrimary));
                 if (fraTabVideo == null){
                     fraTabVideo = new VideoFragment();
                     transaction.add(R.id.id_content, fraTabVideo);
@@ -285,10 +317,11 @@ public class MainActivity extends AppCompatActivity {
 
             case REQUEST_CODE_HOME:
                 ivHome.setImageResource(R.drawable.home_l);
-                tvHome.setTextColor(Color.parseColor("#00bfff"));
+                tvHome.setTextColor(this.getResources().getColor(R.color.colorPrimary));
                 if (fraTabHome == null){
                     fraTabHome = new HomeFragment();
                     transaction.add(R.id.id_content, fraTabHome);
+                    fraTabHome.setAccount(account);
                 } else {
                     transaction.show(fraTabHome);
                 }
@@ -303,9 +336,9 @@ public class MainActivity extends AppCompatActivity {
         ivVideo.setImageResource(R.drawable.video_h);
         ivHome.setImageResource(R.drawable.home_h);
 
-        tvWeather.setTextColor(Color.parseColor("#ff666666"));
-        tvVideo.setTextColor(Color.parseColor("#ff666666"));
-        tvHome.setTextColor(Color.parseColor("#ff666666"));
+        tvWeather.setTextColor(this.getResources().getColor(R.color.text_gray));
+        tvVideo.setTextColor(this.getResources().getColor(R.color.text_gray));
+        tvHome.setTextColor(this.getResources().getColor(R.color.text_gray));
     }
 
     //  将所有的fragment均设为隐藏状态。便于下一步的选择并显示。
@@ -349,6 +382,7 @@ public class MainActivity extends AppCompatActivity {
         return true;
     }
 
+    //下拉选项事件
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -373,7 +407,30 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "等一会儿吧", Toast.LENGTH_SHORT).show();
             return true;
         }
-
+        if (id == R.id.action_signOut){
+            Toast.makeText(getApplicationContext(), "等一会儿吧", Toast.LENGTH_SHORT).show();
+            String name = getAccount();
+            DataBaseUtil.deleteInSql(this, name);
+            Intent i = new Intent(MainActivity.this, LoginActivity.class);
+            MainActivity.this.startActivity(i);
+            MainActivity.this.finish();
+        }
         return super.onOptionsItemSelected(item);
+    }
+
+//    @Override
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        if (1 == requestCode) {
+//            if (1 == resultCode) {
+//                Bundle bundle = data.getBundleExtra("bundle");
+//                setIsLogin(bundle.getBoolean("isLogin"));
+//            }
+//        }
+//        super.onActivityResult(requestCode, resultCode, data);
+//    }
+
+    //登陆标记
+    public String getAccount(){
+        return account;
     }
 }
