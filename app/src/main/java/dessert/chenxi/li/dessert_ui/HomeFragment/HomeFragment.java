@@ -12,6 +12,11 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -43,7 +48,7 @@ public class HomeFragment extends Fragment {
     private String account;
 
     private SimpleLineChart mSimpleLineChart;
-    private TextView tvAccount;
+    private TextView tvAccount, tvSettings, tvMoreHistory, tvBuyMore, tvContactUs;
     private Button btnWeather, btnInfo;
 
     private OnFragmentInteractionListener mListener;
@@ -86,8 +91,10 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         mSimpleLineChart = (SimpleLineChart) view.findViewById(R.id.simpleLineChart);
         tvAccount = (TextView) view.findViewById(R.id.tv_home_account);
-        btnWeather = (Button) view.findViewById(R.id.btnWeather);
-        btnInfo = (Button) view.findViewById(R.id.btnInfo);
+        tvBuyMore = (TextView) view.findViewById(R.id.tv_buyMore);
+        tvContactUs = (TextView) view.findViewById(R.id.tv_contactUs);
+        tvMoreHistory = (TextView) view.findViewById(R.id.tv_moreHistory);
+        tvSettings = (TextView) view.findViewById(R.id.tv_settings);
 
         String[] xItem = {"1","2","3","4","5","6","7"};
         String[] yItem = {"30","20","10","0","-10"};
@@ -102,9 +109,10 @@ public class HomeFragment extends Fragment {
         mSimpleLineChart.setData(pointMap);
 
         tvAccount.setText(account);
-        btnWeather.setOnClickListener(ClickHandler);
-        btnInfo.setOnClickListener(ClickHandler);
-
+        tvSettings.setOnClickListener(ClickHandler);
+        tvMoreHistory.setOnClickListener(ClickHandler);
+        tvContactUs.setOnClickListener(ClickHandler);
+        tvBuyMore.setOnClickListener(ClickHandler);
 
         return view;
     }
@@ -113,18 +121,21 @@ public class HomeFragment extends Fragment {
         @Override
         public void onClick(View view) {
             switch (view.getId()) {
-                case R.id.btnInfo:
-                    Log.i("btnClickInfo", "ok");
-                    OkHttpUtil.postMoreParams(url, "233", "1", "50", "50", "150");
+                case R.id.tv_buyMore:
+                    Toast.makeText(getActivity(), "辽宁沈阳最大电子器械厂DESSERT倒闭了," +
+                            "王八蛋老板李晨曦吃喝嫖赌,欠下了3.5个亿,带着他的小姨子跑了," +
+                            "原价都是1000多、2000多的板子,统统20块,李晨曦王八蛋,你不是人," +
+                            "我们辛辛苦苦给你干了大半年,你不发工资,你还我血汗钱。！", Toast.LENGTH_LONG).show();
+                    OkHttpUtil.postMoreParams(url,"admin","2","30","30","150");
                     break;
-
-                case R.id.btnWeather:
-                    Log.i("btnClickWeather", "ok");
-                    try {
-                        OkHttpUtil.weatherGet();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                case R.id.tv_contactUs:
+                    Toast.makeText(getActivity(), "自己打电话去！", Toast.LENGTH_SHORT).show();
+                    break;
+                case R.id.tv_settings:
+                    Toast.makeText(getActivity(), "还没连呢！", Toast.LENGTH_SHORT).show();
+                    break;
+                case R.id.tv_moreHistory:
+                    Toast.makeText(getActivity(), "现在还没数据呢！", Toast.LENGTH_SHORT).show();
                     break;
                 default:
                     break;
