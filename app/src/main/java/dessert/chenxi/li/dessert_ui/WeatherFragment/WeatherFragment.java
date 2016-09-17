@@ -55,10 +55,9 @@ public class WeatherFragment extends Fragment {
     private OnFragmentInteractionListener mListener;
     private DashboardView dashboardView;
     private ImageView ivWeather;
-    private TextView tvHum, tvPm25, tvGaswarning, tvFirewarning;
+    private TextView tvHum, tvPm25, tvGaswarning, tvFirewarning, tvOutsideTemp, tvWindLevel;
     private LinearLayout lyGaswarning, lyFireWarning;
     private Handler handler, weatherHandler;
-    private String weather;
     private Vibrator vibrator;
 
     public WeatherFragment() {
@@ -93,7 +92,10 @@ public class WeatherFragment extends Fragment {
 
         weatherHandler = new Handler(){
             public void handleMessage(Message msg) {
-                switch (msg.what){
+                int weather = msg.getData().getInt("weather");
+                String outsideTemp = msg.getData().getString("outsideTemp");
+                String windLevel = msg.getData().getString("windLevel");
+                switch (weather){
                     case 0:
                         ivWeather.setImageResource(R.drawable.sun_pic);
                         break;
@@ -133,37 +135,47 @@ public class WeatherFragment extends Fragment {
                     default:
                         break;
                 }
+
+                tvOutsideTemp.setText(outsideTemp);
+                tvWindLevel.setText(windLevel);
+
                 super.handleMessage(msg);
             }
         };
 
-
         handler = new Handler() {
             public void handleMessage(Message msg) {
-                // 处理信息
-                int tmp = (int)(Math.random()*100);
-                int hum = (int)(Math.random()*100);
-                int pm25 = (int)(Math.random()*1000);
-                dashboardView.setPercent(tmp);
-                tvHum.setText(String.valueOf(hum));
-                tvPm25.setText(String.valueOf(pm25));
+//                // 处理信息
+//                int tmp = (int)(Math.random()*100);
+//                int hum = (int)(Math.random()*100);
+//                int pm25 = (int)(Math.random()*1000);
+//                dashboardView.setPercent(tmp);
+//                tvHum.setText(String.valueOf(hum));
+//                tvPm25.setText(String.valueOf(pm25));
 
-                int tmpWarn = 90;
-                int humWarn = 10;
-                int pm25Warn = 980;
+                String tempOri = msg.getData().getString("temp");
+                int temp = Integer.parseInt(tempOri);
+                String hum = msg.getData().getString("hum");
+                String pm = msg.getData().getString("pm");
+                boolean fire = msg.getData().getBoolean("fire");
+                boolean gas = msg.getData().getBoolean("gas");
+
+                dashboardView.setPercent(temp);
+                tvHum.setText(hum);
+                tvPm25.setText(pm);
 
                 //火灾提醒
-                if ((tmp > tmpWarn && hum < humWarn) || (pm25 > pm25Warn)){
+                if (gas || fire){
                     //提醒
-                    if ((tmp > tmpWarn && hum < humWarn) && (pm25 > pm25Warn)){
+                    if (gas && fire){
                         lyFireWarning.setBackgroundColor(Color.RED);
                         tvFirewarning.setText("危险");
                         lyGaswarning.setBackgroundColor(Color.RED);
                         tvGaswarning.setText("危险");
-                    }else if ((tmp > tmpWarn && hum < humWarn) && !(pm25 > pm25Warn)){
+                    }else if (!gas && fire){
                         lyFireWarning.setBackgroundColor(Color.RED);
                         tvFirewarning.setText("危险");
-                    }else if (!(tmp > tmpWarn && hum < humWarn) && (pm25 > pm25Warn)){
+                    }else {
                         lyGaswarning.setBackgroundColor(Color.RED);
                         tvGaswarning.setText("危险");
                     }
@@ -190,8 +202,15 @@ public class WeatherFragment extends Fragment {
             // TODO Auto-generated method stub
             while (true) {
                 try {
-                    Thread.sleep(5000);// 线程暂停5秒，单位毫秒
+                    Thread.sleep(1000);// 线程暂停1秒，单位毫秒
                     Message message = new Message();
+                    Bundle bundle=new Bundle();
+                    bundle.putString("temp", MainActivity.getTempW());
+                    bundle.putString("hum", MainActivity.getHumW());
+                    bundle.putString("pm", MainActivity.getPm25W());
+                    bundle.putBoolean("gas", MainActivity.isGasW());
+                    bundle.putBoolean("fire", MainActivity.isFireW());
+                    message.setData(bundle);//bundle传值，耗时，效率低
                     message.what = 1;
                     handler.sendMessage(message);// 发送消息
                 } catch (InterruptedException e) {
@@ -210,7 +229,12 @@ public class WeatherFragment extends Fragment {
                 try {
                     Thread.sleep(60000);// 线程暂停60秒，单位毫秒
                     Message message = new Message();
-                    message.what = weatherUtil.weatherNumInfo();
+
+                    Bundle bundle=new Bundle();
+                    bundle.putInt("weather", weatherUtil.weatherNumInfo());
+                    bundle.putString("outsideTemp", weatherUtil.getTemp());
+                    bundle.putString("windLevel", weatherUtil.getWind());
+                    message.setData(bundle);//bundle传值，耗时，效率低
                     weatherHandler.sendMessage(message);// 发送消息
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
@@ -249,6 +273,9 @@ public class WeatherFragment extends Fragment {
         lyFireWarning = (LinearLayout) view.findViewById(R.id.ly_fireWaring);
         vibrator = (Vibrator)getActivity().getSystemService(Context.VIBRATOR_SERVICE);
         ivWeather = (ImageView) view.findViewById(R.id.iv_weather_item);
+
+        tvOutsideTemp = (TextView) view.findViewById(R.id.tvOutsideWeather);
+        tvWindLevel = (TextView) view.findViewById(R.id.tvWindLevel);
 
         dashboardView.setMaxNum(100);
         dashboardView.setPercent(0);

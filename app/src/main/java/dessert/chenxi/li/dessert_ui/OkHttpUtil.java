@@ -1,6 +1,10 @@
 package dessert.chenxi.li.dessert_ui;
 
 import android.util.Log;
+import android.widget.Button;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.IOException;
 
@@ -19,7 +23,7 @@ import okhttp3.Response;
 
 public class OkHttpUtil {
     public static boolean result = false;
-    public static String weatherJSON, loginStr="";
+    public static String weatherJSON, loginStr, loctionStr;
     public static OkHttpClient client = new OkHttpClient();
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
 
@@ -90,12 +94,16 @@ public class OkHttpUtil {
     }
 
     public static boolean postMoreParams(String url, final String account, final String devID,
-                                                     final String temp, final String hum, final String air) {
+                                         final String temp, final String hum, final String air,
+                                         final boolean fire, final boolean gas, final boolean ir) {
         RequestBody body = new FormBody.Builder().add("username", account)
                                                  .add("devID", devID)
                                                  .add("temp", temp)
                                                  .add("hum", hum)
                                                  .add("air", air)
+                                                 .add("fire", String.valueOf(fire))
+                                                 .add("gas", String.valueOf(gas))
+                                                 .add("ir", String.valueOf(ir))
                                                  .build();
         Request request = new Request.Builder().url(url).post(body).build();
         Log.i("request",request.toString());
@@ -193,7 +201,40 @@ public class OkHttpUtil {
         return weatherJSON;
     }
 
+    public static String locationGet(String url, String account) {
+        RequestBody body = new FormBody.Builder().add("username", account)
+                .build();
+        Request request = new Request.Builder().url(url).post(body).build();
+        Log.i("request", request.toString());
+        Call call = client.newCall(request);
+        call.enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+            }
 
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                loctionStr = response.body().string();
+                if (response.isSuccessful()) {
+                    setResult(true);
+                    Log.i("200", "httpGet OK: " + loctionStr);
+                    Log.i("body", loctionStr);
+                } else {
+                    setResult(false);
+                    Log.i("!200", "httpGet error: " + loctionStr);
+                    Log.i("body", loctionStr);
+                }
+            }
+        });
+        while (loctionStr == null){
+            try {
+                // Simulate network access.
+                Thread.sleep(2000);
+            } catch (InterruptedException e) {
+            }
+        }
+        return loctionStr;
+    }
 //    /**
 //     * OkHttp的get请求
 //     * 需要加线程
